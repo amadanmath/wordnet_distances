@@ -1,0 +1,13 @@
+name: wordnet_distances
+version: 0.1.0
+
+authors:
+  - Goran Topic <amadan@mad.scientist.com>
+
+targets:
+  wordnet_distances:
+    main: src/wordnet_distances.cr
+
+crystal: 0.24.1
+
+license: MIT
