@@ -7,7 +7,7 @@ require "priority_queue"
 # TODO: Write documentation for `WordnetDistances`
 module WordnetDistances
   # TODO: Put your code here
-  
+
   POINTER_TYPES = {
     "!"   => :antonym,
     "@"   => :hypernym,
@@ -99,7 +99,6 @@ module WordnetDistances
     getter ss_type : Char
     getter words : Array(Word)
     getter pointers : Array(SynsetPointer)
-    getter distances : Hash(SynsetID, Weight)
 
     def initialize(line : String)
       fieldstring, @gloss = line.split(" | ")
@@ -128,8 +127,6 @@ module WordnetDistances
         next unless source_target == "0000"
         SynsetPointer.new(pointer_type, offset, pos)
       }.to_a.compact
-
-      @distances = {} of SynsetID => Weight
     end
 
     def to_s(io)
@@ -166,6 +163,7 @@ module WordnetDistances
       synset = @synsets[synset_id]
       seen = Set{synset_id}
       queue = PriorityQueue{0_f32 => synset_id}
+      distances = {} of SynsetID => Weight
 
       until queue.empty?
         old_distance = -queue.priority
@@ -179,37 +177,28 @@ module WordnetDistances
           next if seen.includes?(target_id)
           seen << target_id
 
-          synset.distances[target_id] = distance
+          distances[target_id] = distance
           queue[-distance] = target_id
         end
       end
-    end
 
-    def print_distances(synset_id)
-      synset = @synsets[synset_id]
-      puts synset
-      synset.distances.each do |target_id, distance|
-        puts "\t#{distance}\t#{@synsets[target_id]}"
-      end
+      distances
     end
 
     def calculate_distances(limit)
       @synsets.each_with_index do |(synset_id, synset), index|
         puts "#{index}\t#{synset}" if VERBOSE
 
-        calculate_distance(limit, synset_id)
-        yield synset
-
-        # forget, to reclaim memory
-        synset.distances.clear
+        distances = calculate_distance(limit, synset_id)
+        yield synset, distances
       end
     end
 
     def calculate_distances_to_text_file(limit, file)
       File.open(file, "w") do |f|
-        calculate_distances(limit) do |synset|
-          distances = synset.distances.map { |target_id, dist| "#{target_id[0]} #{target_id[1]} #{dist}" }.join(", ")
-          f.puts("#{synset.offset} #{synset.ss_type}: #{distances}")
+        calculate_distances(limit) do |synset, distances|
+          distances_str = distances.map { |target_id, dist| "#{target_id[0]} #{target_id[1]} #{dist}" }.join(", ")
+          f.puts("#{synset.offset} #{synset.ss_type}: #{distances_str}")
         end
       end
     end
@@ -218,19 +207,20 @@ module WordnetDistances
       index = Hash(Char, Hash(UInt32, Int64)).new { |h, k| h[k] = Hash(UInt32, Int64).new }
       File.open(file, "wb") do |f|
         f.write_bytes(@synsets.size)
-        calculate_distances(limit) do |synset|
+        calculate_distances(limit) do |synset, distances|
           f.flush
-          index[synset.ss_type][synset.offset] = f.tell
+          index[synset.ss_type][synset.offset] = f.tell # DEBUG
           f.write_bytes(synset.offset)
           f.write_byte(synset.ss_type.ord.to_u8)
-          f.write_bytes(synset.distances.size)
-          synset.distances.each do |target_id, distance|
+          f.write_bytes(distances.size)
+          distances.each do |target_id, distance|
             f.write_bytes(target_id[0])
             f.write_byte(target_id[1].ord.to_u8)
             f.write_bytes(distance)
           end
         end
       end
+
       File.open(index_file, "wb") do |f|
         f.write_bytes(index.size)
         index.each do |pos, pos_data|
@@ -252,7 +242,7 @@ module WordnetDistances
   rescue KeyError
     WEIGHTS[sym] = 1.0_f32
   end
-  LIMIT = CONFIG["limit"].as_f.to_f32 rescue 1.0
+  LIMIT = CONFIG["limit"].as_f.to_f32 rescue 1.0_f32
   VERBOSE = CONFIG["verbose"] rescue false
   BINARY = CONFIG["verbose"] rescue false
   WORDNET = CONFIG["wordnet"].as_s rescue "dict"
@@ -269,19 +259,4 @@ module WordnetDistances
   else
     graph.calculate_distances_to_text_file(LIMIT, "#{file}.txt")
   end
-
-  # puts "------------ Java the Island"
-  # example_id = {8928021_u32, 'n'} # java the island
-  # graph.calculate_distance(LIMIT, example_id)
-  # graph.print_distances(example_id)
-
-  # puts "------------ Java the Coffee"
-  # example_id = {7945759_u32, 'n'} # java the coffee
-  # graph.calculate_distance(LIMIT, example_id)
-  # graph.print_distances(example_id)
-
-  # puts "------------ Java the Language"
-  # example_id = {6913829_u32, 'n'} # java the language
-  # graph.calculate_distance(LIMIT, example_id)
-  # graph.print_distances(example_id)
 end
