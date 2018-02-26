@@ -2,3 +2,14 @@
 /lib/
 /bin/
 /.shards/
+
+# main config - make your own from sample
+/config.yaml
+
+# data
+/dict/
+
+# program output
+*.bin
+*.idx
+*.txt

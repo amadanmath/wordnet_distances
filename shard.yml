@@ -8,6 +8,10 @@ targets:
   wordnet_distances:
     main: src/wordnet_distances.cr
 
+dependencies:
+  priority_queue:
+    github: amadanmath/priority_queue.cr
+
 crystal: 0.24.1
 
 license: MIT

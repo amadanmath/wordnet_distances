@@ -1,0 +1,33 @@
+---
+filename: distances
+limit: 2.0
+verbose: true
+binary: true
+weights:
+  antonym: 1.0
+  hypernym: 1.0
+  instance_hypernym: 1.0
+  hyponym: 1.0
+  instance_hyponym: 1.0
+  member_holonym: 1.0
+  substance_holonym: 1.0
+  part_holonym: 1.0
+  member_meronym: 1.0
+  substance_meronym: 1.0
+  part_meronym: 1.0
+  attribute: 1.0
+  derivationally_related_form: 1.0
+  domain_of_synset_topic: 1.0
+  member_of_this_domain_topic: 1.0
+  domain_of_synset_region: 1.0
+  member_of_this_domain_region: 1.0
+  domain_of_synset_usage: 1.0
+  member_of_this_domain_usage: 1.0
+  entailment: 1.0
+  cause: 1.0
+  also_see: 1.0
+  verb_group: 1.0
+  similar_to: 1.0
+  participle_of_verb: 1.0
+  pertainym: 1.0
+  derived_from_adjective: 1.0
