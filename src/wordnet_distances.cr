@@ -1,7 +1,7 @@
 require "./wordnet_distances/*"
 
-require "YAML"
-require "JSON"
+require "yaml"
+require "json"
 require "priority_queue"
 
 # TODO: Write documentation for `WordnetDistances`
