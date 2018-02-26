@@ -255,12 +255,13 @@ module WordnetDistances
   LIMIT = CONFIG["limit"].as_f.to_f32 rescue 1.0
   VERBOSE = CONFIG["verbose"] rescue false
   BINARY = CONFIG["verbose"] rescue false
+  WORDNET = CONFIG["wordnet"].as_s rescue "dict"
 
   graph = SynsetGraph.new
-  graph.load("dict/data.adj")
-  graph.load("dict/data.adv")
-  graph.load("dict/data.noun")
-  graph.load("dict/data.verb")
+  graph.load(File.join(WORDNET, "data.adj"))
+  graph.load(File.join(WORDNET, "data.adv"))
+  graph.load(File.join(WORDNET, "data.noun"))
+  graph.load(File.join(WORDNET, "data.verb"))
 
   file = CONFIG["filename"] rescue "distances"
   if BINARY

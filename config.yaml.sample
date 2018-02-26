@@ -1,5 +1,6 @@
 ---
 filename: distances
+wordnet: ./dict
 limit: 2.0
 verbose: true
 binary: true
