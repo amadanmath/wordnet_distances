@@ -8,7 +8,7 @@ require "priority_queue"
 module WordnetDistances
   # TODO: Put your code here
 
-	ITEMS_TILL_GC = 2000
+  ITEMS_TILL_GC = 2000
 
   POINTER_TYPES = {
     "!"   => :antonym,
@@ -37,13 +37,14 @@ module WordnetDistances
     "&"   => :similar_to,
     "<"   => :participle_of_verb,
     "\\"  => :pertainym,
-    "\\r" => :derived_from_adjective
+    "\\r" => :derived_from_adjective,
   }
 
   POINTER_TYPE_NAMES = {} of String => Symbol
   POINTER_TYPES.values.map { |sym| POINTER_TYPE_NAMES[sym.to_s] = sym }
 
   alias StringID = Int32
+
   class StringMapper
     @@array = [] of String
     @@hash = {} of String => StringID
@@ -61,7 +62,6 @@ module WordnetDistances
     end
   end
 
-
   class Word
     getter id
     getter lex
@@ -77,7 +77,6 @@ module WordnetDistances
     end
   end
 
-
   class SynsetPointer
     getter type
     getter offset
@@ -91,9 +90,9 @@ module WordnetDistances
     end
   end
 
-
   alias SynsetID = Tuple(UInt32, Char)
   alias Weight = Float32
+
   class Synset
     getter gloss : String
     getter offset : UInt32
@@ -101,7 +100,7 @@ module WordnetDistances
     getter ss_type : Char
     getter words : Array(Word)
     getter pointers : Array(SynsetPointer)
-		property dist_offset = -1_i64
+    property dist_offset = -1_i64
 
     def initialize(line : String)
       fieldstring, @gloss = line.split(" | ")
@@ -139,7 +138,6 @@ module WordnetDistances
       }
     end
   end
-
 
   class SynsetGraph
     def initialize
@@ -189,19 +187,19 @@ module WordnetDistances
     end
 
     def calculate_distances(limit)
-			num_distances = 0
+      num_distances = 0
       @synsets.each_with_index do |(synset_id, synset), index|
         puts "#{index}\t#{synset}" if VERBOSE
 
         distances = calculate_distance(limit, synset_id)
         yield synset, distances
 
-				num_distances += distances.size
+        num_distances += distances.size
 
-				if num_distances >= ITEMS_TILL_GC
-					GC.collect
-					num_distances = 0
-				end
+        if num_distances >= ITEMS_TILL_GC
+          GC.collect
+          num_distances = 0
+        end
       end
     end
 
@@ -228,31 +226,30 @@ module WordnetDistances
             f.write_byte(target_id[1].ord.to_u8)
             f.write_bytes(distance)
           end
-					GC.collect
         end
       end
 
       File.open(index_file, "wb") do |f|
         f.write_bytes(@synsets.size)
         @synsets.each do |synset_id, synset|
-					f.write_bytes(synset.offset)
+          f.write_bytes(synset.offset)
           f.write_byte(synset.ss_type.ord.to_u8)
-					f.write_bytes(synset.dist_offset)
+          f.write_bytes(synset.dist_offset)
         end
       end
     end
   end
 
-  CONFIG = YAML.parse(File.read("config.yaml"))
+  CONFIG  = YAML.parse(File.read("config.yaml"))
   WEIGHTS = {} of Symbol => Weight
   POINTER_TYPE_NAMES.each do |str, sym|
     WEIGHTS[sym] = CONFIG["weights"][str].as_f.to_f32
   rescue KeyError
     WEIGHTS[sym] = 1.0_f32
   end
-  LIMIT = CONFIG["limit"].as_f.to_f32 rescue 1.0_f32
+  LIMIT   = CONFIG["limit"].as_f.to_f32 rescue 1.0_f32
   VERBOSE = CONFIG["verbose"] rescue false
-  BINARY = CONFIG["verbose"] rescue false
+  BINARY  = CONFIG["verbose"] rescue false
   WORDNET = CONFIG["wordnet"].as_s rescue "dict"
 
   graph = SynsetGraph.new
