@@ -8,6 +8,8 @@ require "priority_queue"
 module WordnetDistances
   # TODO: Put your code here
 
+	ITEMS_TILL_GC = 2000
+
   POINTER_TYPES = {
     "!"   => :antonym,
     "@"   => :hypernym,
@@ -99,6 +101,7 @@ module WordnetDistances
     getter ss_type : Char
     getter words : Array(Word)
     getter pointers : Array(SynsetPointer)
+		property dist_offset = -1_i64
 
     def initialize(line : String)
       fieldstring, @gloss = line.split(" | ")
@@ -186,11 +189,19 @@ module WordnetDistances
     end
 
     def calculate_distances(limit)
+			num_distances = 0
       @synsets.each_with_index do |(synset_id, synset), index|
         puts "#{index}\t#{synset}" if VERBOSE
 
         distances = calculate_distance(limit, synset_id)
         yield synset, distances
+
+				num_distances += distances.size
+
+				if num_distances >= ITEMS_TILL_GC
+					GC.collect
+					num_distances = 0
+				end
       end
     end
 
@@ -204,12 +215,11 @@ module WordnetDistances
     end
 
     def calculate_distances_to_bin_file(limit, file, index_file)
-      index = Hash(Char, Hash(UInt32, Int64)).new { |h, k| h[k] = Hash(UInt32, Int64).new }
       File.open(file, "wb") do |f|
         f.write_bytes(@synsets.size)
         calculate_distances(limit) do |synset, distances|
           f.flush
-          index[synset.ss_type][synset.offset] = f.tell # DEBUG
+          synset.dist_offset = f.tell
           f.write_bytes(synset.offset)
           f.write_byte(synset.ss_type.ord.to_u8)
           f.write_bytes(distances.size)
@@ -218,18 +228,16 @@ module WordnetDistances
             f.write_byte(target_id[1].ord.to_u8)
             f.write_bytes(distance)
           end
+					GC.collect
         end
       end
 
       File.open(index_file, "wb") do |f|
-        f.write_bytes(index.size)
-        index.each do |pos, pos_data|
-          f.write_byte(pos.ord.to_u8)
-          f.write_bytes(pos_data.size)
-          pos_data.each do |offset, loc|
-            f.write_bytes(offset)
-            f.write_bytes(loc)
-          end
+        f.write_bytes(@synsets.size)
+        @synsets.each do |synset_id, synset|
+					f.write_bytes(synset.offset)
+          f.write_byte(synset.ss_type.ord.to_u8)
+					f.write_bytes(synset.dist_offset)
         end
       end
     end
