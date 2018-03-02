@@ -1,7 +1,7 @@
 import struct
 
 def readstruct(f, s, n=None):
-    if n:
+    if n is not None:
         return s.iter_unpack(f.read(s.size * n))
     else:
         return s.unpack(f.read(s.size))
