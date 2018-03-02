@@ -33,10 +33,47 @@ class DistanceReader:
                 result[pos, target_offset] = dist
         return result
 
+    @staticmethod
+    def to(dist, pos, offset):
+        try:
+            return dist[pos, offset]
+        except KeyError:
+            return float('inf')
+
+
 
 
 if __name__ == '__main__':
     import os.path
     script_dir = os.path.dirname(os.path.abspath(__file__))
     dr = DistanceReader(script_dir + "/../distances.bin", script_dir + "/../distances.idx")
-    print("Distance between coffee#1 and coffee_substitute#1: %s" % dr['n', 7929519]['n', 7731122])
+
+    from nltk.corpus import wordnet as wn
+
+    while True:
+        w1 = input("W1: ")
+        w1s = wn.synsets(w1)
+        if w1s:
+            break
+        else:
+            print("Unknown word, please enter again")
+    while True:
+        w2 = input("W2: ")
+        w2s = wn.synsets(w2)
+        if w2s:
+            break
+        else:
+            print("Unknown word, please enter again")
+
+    results = []
+    for s1 in w1s:
+        try:
+            dt = dr[s1.pos(), s1.offset()]
+            for s2 in w2s:
+                d = dr.to(dt, s2.pos(), s2.offset())
+                results.append((d, s1, s2))
+        except KeyError:
+            print("No record of distances for %s" % s1)
+    results.sort()
+    for dist, s1, s2 in results:
+        print("%s\n%s\n%s\n" % (dist, s1.definition(), s2.definition()))
